@@ -43,7 +43,7 @@ dependencies {
 	implementation 'org.json:json:20220320'
 
 	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
-
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	//log
 	implementation "com.github.maricn:logback-slack-appender:1.4.0"
 	implementation 'io.sentry:sentry-spring-boot-starter-jakarta:6.28.0'

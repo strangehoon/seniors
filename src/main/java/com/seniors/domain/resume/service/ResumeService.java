@@ -18,6 +18,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,6 +28,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -35,6 +39,7 @@ public class ResumeService {
     private final ResumeRepository resumeRepository;
     private final UsersRepository usersRepository;
     private final NotificationService notificationService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     private final ResumeViewRepository resumeViewRepository;
 
@@ -99,18 +104,9 @@ public class ResumeService {
         );
         Optional<ResumeView> findResumeView = resumeViewRepository.findByUsersAndResume(user, resume);
         if (!findResumeView.isPresent()) {
-            resumeRepository.increaseViewCount(resume.getId());
-            ResumeView resumeView = ResumeView.of(resume,user);
-            resumeViewRepository.save(resumeView);
+            saveToRedis(resumeId, userId);
         }
-        Resume changedResume =  resumeRepository.findById(resumeId).orElseThrow(
-                () -> new NotFoundException("이력서가 존재하지 않습니다.")
-        );
-
-        if (!resume.getUsers().getId().equals(user.getId())) {
-            notificationService.send(resume.getUsers(), resume, "누군가가 내 이력서를 조회했습니다!");
-        }
-        return ResumeDto.GetResumeRes.from(changedResume);
+        return ResumeDto.GetResumeRes.from(resume);
     }
 
     @Transactional(readOnly = true)
@@ -223,4 +219,30 @@ public class ResumeService {
         return viewerInfoList;
     }
 
+    @Transactional
+    public void saveToRedis(Long resumeId, Long userId) {
+        String key = "ResumeView[" + resumeId + "] : " + userId;
+        redisTemplate.opsForValue().set(key, userId, 3, TimeUnit.MINUTES);
+    }
+    @Scheduled(cron = "0 0/3 * * * ?")
+    @Transactional
+    public void updateResumeView(){
+        List<ResumeView> resumeViewList = new ArrayList<>();
+        Set<String> keys = redisTemplate.keys("ResumeView*");
+        for(String key : keys){
+            String[] parts = key.split(" : ");
+            int startIdx = parts[0].indexOf('[');
+            int endIdx = parts[0].indexOf(']');
+            Long resumeId = Long.parseLong(parts[0].substring(startIdx+1, endIdx));
+            Long userId = Long.parseLong(parts[1]);
+            Resume resume = resumeRepository.findById(resumeId).orElse(null);
+            Users user = usersRepository.findById(userId).orElse(null);
+            if(resume != null && user != null){
+                resume.increaseViewCount();
+                ResumeView resumeView = ResumeView.of(resume, user);
+                resumeViewList.add(resumeView);
+            }
+        }
+        resumeViewRepository.saveAll(resumeViewList);
+    }
 }
