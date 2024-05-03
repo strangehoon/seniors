@@ -2,6 +2,7 @@ package com.seniors.config;
 
 import com.google.common.collect.ImmutableMap;
 import com.zaxxer.hikari.HikariDataSource;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
@@ -9,15 +10,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.datasource.LazyConnectionDataSourceProxy;
-
 import javax.sql.DataSource;
 import java.util.Map;
-
 import static com.seniors.common.constant.DataSourceConstants.MASTER_DATASOURCE;
 import static com.seniors.common.constant.DataSourceConstants.SLAVE_DATASOURCE;
 
 
-//@Configuration
+@Configuration
+@RequiredArgsConstructor
 public class DataSourceConfig {
 
     @Bean(MASTER_DATASOURCE)
@@ -45,8 +45,8 @@ public class DataSourceConfig {
         RoutingDataSource routingDataSource = new RoutingDataSource();
 
         Map<Object, Object> datasourceMap = ImmutableMap.<Object, Object>builder()
-                .put("master", masterDataSource)
-                .put("slave", slaveDataSource)
+                .put("MASTER", masterDataSource)
+                .put("SLAVE", slaveDataSource)
                 .build();
 
         routingDataSource.setTargetDataSources(datasourceMap);
