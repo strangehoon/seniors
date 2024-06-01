@@ -15,7 +15,7 @@ public class QueryCount {
         return count.get();
     }
 
-    public void resetCount() {
-        count.set(0);
+    public void remove() {
+        count.remove();
     }
 }

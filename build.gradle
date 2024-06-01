@@ -88,6 +88,9 @@ dependencies {
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
+
+	implementation 'net.javacrumbs.shedlock:shedlock-spring:4.29.0'
+	implementation 'net.javacrumbs.shedlock:shedlock-provider-jdbc-template:4.29.0'
 }
 
 test {

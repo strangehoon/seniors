@@ -1,7 +1,6 @@
 package com.seniors.domain.resume.service;
 
 import com.seniors.common.dto.CustomSlice;
-import com.seniors.common.dto.DataResponseDto;
 import com.seniors.common.exception.type.*;
 import com.seniors.config.S3Uploader;
 import com.seniors.domain.notification.service.NotificationService;
@@ -14,8 +13,7 @@ import com.seniors.domain.users.entity.Users;
 import com.seniors.domain.users.repository.UsersRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -23,7 +21,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -94,7 +91,7 @@ public class ResumeService {
         return savedResume.getId();
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public ResumeDto.GetResumeRes findResume(Long resumeId, Long userId) {
         Users user =  usersRepository.findById(userId).orElseThrow(
                 () -> new NotFoundException("회원이 존재하지 않습니다.")
@@ -224,7 +221,13 @@ public class ResumeService {
         String key = "ResumeView[" + resumeId + "] : " + userId;
         redisTemplate.opsForValue().set(key, userId, 3, TimeUnit.MINUTES);
     }
+
     @Scheduled(cron = "0 0/3 * * * ?")
+    @SchedulerLock(
+            name = "scheduler_lock",
+            lockAtLeastFor = "PT10S",
+            lockAtMostFor = "PT10S"
+    )
     @Transactional
     public void updateResumeView(){
         List<ResumeView> resumeViewList = new ArrayList<>();

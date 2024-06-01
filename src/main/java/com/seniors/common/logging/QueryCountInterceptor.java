@@ -26,6 +26,6 @@ public class QueryCountInterceptor implements HandlerInterceptor {
         String requestURI = request.getRequestURI();
         String method = request.getMethod();
         log.info(QUERY_INFO_FORMAT, method, requestURI, status, count);
-        queryCounter.resetCount();
+        queryCounter.remove();
     }
 }
