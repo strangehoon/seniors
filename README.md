@@ -56,7 +56,7 @@
 
 # 🛠 Infrastructure
 
-<img src = "https://github.com/strangehoon/seniors/assets/117654450/f2e6daf0-9200-4fba-bad2-7cd0e42c29ea" height = "500" width = "800" allign = "center">
+<img src = "https://github.com/strangehoon/seniors/assets/117654450/376ddf6f-3086-417d-8805-ba3a137b2231" height = "500" width = "800" allign = "center">
 
 </br>
 
