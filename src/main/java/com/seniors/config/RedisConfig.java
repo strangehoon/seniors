@@ -1,9 +1,12 @@
 package com.seniors.config;
 
+import io.lettuce.core.ReadFrom;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisStaticMasterReplicaConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
@@ -16,15 +19,30 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @EnableRedisRepositories
 public class RedisConfig {
 
-    @Value("${spring.data.redis.host}")
-    private String redisHost;
+    @Value("${spring.data.redis.primary.host}")
+    private String primaryHost;
 
-    @Value("${spring.data.redis.port}")
-    private int redisPort;
+    @Value("${spring.data.redis.primary.port}")
+    private int primaryPort;
+
+    @Value("${spring.data.redis.replica.host}")
+    private String replicaHost;
+
+    @Value("${spring.data.redis.replica.port}")
+    private int replicaPort;
 
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
-        return new LettuceConnectionFactory(redisHost, redisPort);
+        LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
+                .readFrom(ReadFrom.REPLICA_PREFERRED)
+                .build();
+
+        var redisConnect = new RedisStaticMasterReplicaConfiguration(primaryHost, primaryPort);
+        redisConnect.addNode(replicaHost, replicaPort);
+        return new LettuceConnectionFactory(
+                redisConnect,
+                clientConfig
+        );
     }
 
     @Bean
