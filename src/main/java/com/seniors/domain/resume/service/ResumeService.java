@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -41,37 +40,37 @@ public class ResumeService {
     private final ResumeViewRepository resumeViewRepository;
 
     private final S3Uploader s3Uploader;
+
     @Transactional
     public Long addResume(SaveResumeReq resumeReq, MultipartFile image, Long userId) throws IOException {
         if (resumeRepository.findByUsersId(userId).isPresent()) {
             throw new ConflictException("이미 해당 유저의 이력서가 존재합니다.");
         }
-        
+
         resumeReq.getCareers().stream()
 
-                .filter(saveCareerReq -> saveCareerReq.getEndedAt()!=null && saveCareerReq.getIsAttendanced()==true)
+                .filter(saveCareerReq -> saveCareerReq.getEndedAt() != null && saveCareerReq.getIsAttendanced() == true)
                 .findAny()
                 .ifPresent(saveCareerReq -> {
                     throw new BadRequestException("퇴사연도를 입력하심면 재직중 여부를 체크하실 수 없습니다.");
                 });
 
         resumeReq.getEducations().stream()
-                .filter(saveEducationReq -> saveEducationReq.getEndedAt()!=null && saveEducationReq.getIsProcessed()==true)
+                .filter(saveEducationReq -> saveEducationReq.getEndedAt() != null && saveEducationReq.getIsProcessed() == true)
                 .findAny()
                 .ifPresent(saveEducationReq1 -> {
                     throw new BadRequestException("종료연도를 입력하시면 진행중 여부를 체크하실 수 없습니다.");
                 });
 
-        Users user =  usersRepository.findById(userId).orElseThrow(
+        Users user = usersRepository.findById(userId).orElseThrow(
                 () -> new NotFoundException("회원이 존재하지 않습니다.")
         );
 
         Resume resume = Resume.of(resumeReq, user);
-        if(image != null) {
+        if (image != null) {
             String photoUrl = s3Uploader.upload(image, "resumes");
             resume.uploadPhotoUrl(photoUrl);
-        }
-        else{
+        } else {
             resume.uploadPhotoUrl(null);
         }
 
@@ -93,10 +92,10 @@ public class ResumeService {
 
     @Transactional(readOnly = true)
     public ResumeDto.GetResumeRes findResume(Long resumeId, Long userId) {
-        Users user =  usersRepository.findById(userId).orElseThrow(
+        Users user = usersRepository.findById(userId).orElseThrow(
                 () -> new NotFoundException("회원이 존재하지 않습니다.")
         );
-        Resume resume =  resumeRepository.findById(resumeId).orElseThrow(
+        Resume resume = resumeRepository.findById(resumeId).orElseThrow(
                 () -> new NotFoundException("이력서가 존재하지 않습니다.")
         );
         Optional<ResumeView> findResumeView = resumeViewRepository.findByUsersAndResume(user, resume);
@@ -108,20 +107,20 @@ public class ResumeService {
 
     @Transactional(readOnly = true)
     public ResumeDto.GetResumeRes findMyResume(Long userId) {
-        Users user =  usersRepository.findById(userId).orElseThrow(
+        Users user = usersRepository.findById(userId).orElseThrow(
                 () -> new NotFoundException("회원이 존재하지 않습니다.")
         );
 
-        Optional<Resume> resume =  resumeRepository.findByUsersId(user.getId());
-        if(resume.isEmpty()){
+        Optional<Resume> resume = resumeRepository.findByUsersId(user.getId());
+        if (resume.isEmpty()) {
             return null;
         }
         return ResumeDto.GetResumeRes.from(resume.get());
     }
 
     @Transactional(readOnly = true)
-    public CustomSlice<ResumeDto.GetResumeByQueryDslRes> findResumeList(Pageable pageable, Long lastId, Long userId){
-        Users user =  usersRepository.findById(userId).orElseThrow(
+    public CustomSlice<ResumeDto.GetResumeByQueryDslRes> findResumeList(Pageable pageable, Long lastId, Long userId) {
+        Users user = usersRepository.findById(userId).orElseThrow(
                 () -> new NotFoundException("회원이 존재하지 않습니다.")
         );
         Slice<ResumeDto.GetResumeByQueryDslRes> result = resumeRepository.findResumeList(pageable, lastId, user.getId());
@@ -131,36 +130,35 @@ public class ResumeService {
     @Transactional
     public void modifyResume(Long resumeId, ResumeDto.ModifyResumeReq resumeReq, MultipartFile image, Long userId) throws IOException {
         Resume resume = resumeRepository.findById(resumeId).orElseThrow(
-                () ->new NotFoundException("이력서가 존재하지 않습니다.")
+                () -> new NotFoundException("이력서가 존재하지 않습니다.")
         );
 
         resumeReq.getCareers().stream()
-                .filter(modifyCareerReq -> modifyCareerReq.getEndedAt()!=null && modifyCareerReq.getIsAttendanced()==true)
+                .filter(modifyCareerReq -> modifyCareerReq.getEndedAt() != null && modifyCareerReq.getIsAttendanced() == true)
                 .findAny()
                 .ifPresent(modifyCareerReq -> {
                     throw new BadRequestException("퇴사연도를 입력하심면 재직중 여부를 체크하실 수 없습니다.");
                 });
 
         resumeReq.getEducations().stream()
-                .filter(modifyEducationReq -> modifyEducationReq.getEndedAt()!=null && modifyEducationReq.getIsProcessed()==true)
+                .filter(modifyEducationReq -> modifyEducationReq.getEndedAt() != null && modifyEducationReq.getIsProcessed() == true)
                 .findAny()
                 .ifPresent(modifyCareerReq -> {
                     throw new BadRequestException("종료연도를 입력하시면 진행중 여부를 체크하실 수 없습니다.");
                 });
 
-        Users user =  usersRepository.findById(userId).orElseThrow(
+        Users user = usersRepository.findById(userId).orElseThrow(
                 () -> new NotFoundException("회원이 존재하지 않습니다.")
         );
 
-        if(!resume.getUsers().getId().equals(user.getId())){
+        if (!resume.getUsers().getId().equals(user.getId())) {
             throw new ForbiddenException("수정 권한이 없습니다.");
         }
 
-        if(image != null) {
+        if (image != null) {
             String photoUrl = s3Uploader.upload(image, "resumes");
             resume.update(resumeReq, photoUrl);
-        }
-        else{
+        } else {
             String photoUrl = null;
             resume.update(resumeReq, photoUrl);
         }
@@ -183,14 +181,14 @@ public class ResumeService {
     }
 
     @Transactional
-    public void removeResume(Long resumeId, Long userId){
+    public void removeResume(Long resumeId, Long userId) {
         Resume resume = resumeRepository.findById(resumeId).orElseThrow(
                 () -> new NotFoundException("이력서가 존재하지 않습니다.")
         );
-        Users user =  usersRepository.findById(userId).orElseThrow(
+        Users user = usersRepository.findById(userId).orElseThrow(
                 () -> new NotFoundException("회원이 존재하지 않습니다.")
         );
-        if (!resume.getUsers().getId().equals(user.getId())){
+        if (!resume.getUsers().getId().equals(user.getId())) {
             throw new ForbiddenException("삭제 권한이 없습니다.");
         }
         resumeRepository.delete(resume);
@@ -205,12 +203,12 @@ public class ResumeService {
         );
 
         Optional<List<ResumeView>> resumeViewList = resumeViewRepository.findByResumeId(resume.getId());
-        if (resumeViewList.isEmpty()){
+        if (resumeViewList.isEmpty()) {
             return null;
         }
         List<ViewerInfoDto.GetViewerInfoRes> viewerInfoList = new ArrayList<>();
 
-        for(ResumeView resumeView : resumeViewList.get()){
+        for (ResumeView resumeView : resumeViewList.get()) {
             viewerInfoList.add(ViewerInfoDto.GetViewerInfoRes.from(resumeView));
         }
         return viewerInfoList;
@@ -218,8 +216,11 @@ public class ResumeService {
 
     @Transactional
     public void saveToRedis(Long resumeId, Long userId) {
-        String key = "ResumeView[" + resumeId + "] : " + userId;
-        redisTemplate.opsForValue().set(key, userId, 3, TimeUnit.MINUTES);
+        String redisKeyForUsers = "resume:view:" + resumeId;
+        String redisKeyForCnt = "resume:cnt" + resumeId;
+
+        redisTemplate.opsForSet().add(redisKeyForUsers, userId);
+        redisTemplate.opsForValue().increment(redisKeyForCnt);
     }
 
     @Scheduled(cron = "0 0/3 * * * ?")
@@ -229,23 +230,40 @@ public class ResumeService {
             lockAtMostFor = "PT10S"
     )
     @Transactional
-    public void updateResumeView(){
-        List<ResumeView> resumeViewList = new ArrayList<>();
-        Set<String> keys = redisTemplate.keys("ResumeView*");
-        for(String key : keys){
-            String[] parts = key.split(" : ");
-            int startIdx = parts[0].indexOf('[');
-            int endIdx = parts[0].indexOf(']');
-            Long resumeId = Long.parseLong(parts[0].substring(startIdx+1, endIdx));
-            Long userId = Long.parseLong(parts[1]);
-            Resume resume = resumeRepository.findById(resumeId).orElse(null);
-            Users user = usersRepository.findById(userId).orElse(null);
-            if(resume != null && user != null){
-                resume.increaseViewCount();
-                ResumeView resumeView = ResumeView.of(resume, user);
-                resumeViewList.add(resumeView);
+    public void updateResumeView() {
+        // 1. Redis에서 resume:view:* 패턴의 키를 조회
+        Set<String> resumeViewKeys = redisTemplate.keys("resume:view:*");
+        if (resumeViewKeys != null) {
+            for (String key : resumeViewKeys) {
+                Long resumeId = Long.parseLong(key.split(":")[2]);
+                Set<Object> userIds = redisTemplate.opsForSet().members(key);
+
+                // ResumeView 객체를 생성하여 저장
+                for (Object userIdObj : userIds) {
+                    Long userId = Long.parseLong(userIdObj.toString());
+                    Resume resume = resumeRepository.findById(resumeId).orElseThrow();
+                    Users user = usersRepository.findById(userId).orElseThrow();
+                    ResumeView resumeView = ResumeView.of(resume, user);
+                    resumeViewRepository.save(resumeView);
+                }
             }
+            redisTemplate.delete(resumeViewKeys);
         }
-        resumeViewRepository.saveAll(resumeViewList);
+
+        // 2. Redis에서 resume:cnt 패턴의 키를 조회
+        Set<String> cntKeys = redisTemplate.keys("resume:cnt*");
+        if (cntKeys != null) {
+            for (String key : cntKeys) {
+                Long resumeId = Long.parseLong(key.split("cnt")[1]);
+                String cntValue = (String) redisTemplate.opsForValue().get(key);
+                if (cntValue != null) {
+                    int viewCount = Integer.parseInt(cntValue);
+                    // Resume 객체를 조회하고 조회 수를 업데이트
+                    Resume resume = resumeRepository.findById(resumeId).orElseThrow();
+                    resume.updateViewCnt(viewCount);
+                }
+            }
+            redisTemplate.delete(cntKeys);
+        }
     }
 }

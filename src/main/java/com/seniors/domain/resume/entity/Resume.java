@@ -85,6 +85,10 @@ public class Resume extends BaseTimeEntity {
                 .build();
     }
 
+    public void updateViewCnt(int viewCnt){
+        this.viewCount += viewCount;
+    }
+
     public void addCareer(Career career) {
         this.getCareers().add(career);
         career.setResume(this);
