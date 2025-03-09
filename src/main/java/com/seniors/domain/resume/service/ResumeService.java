@@ -98,11 +98,25 @@ public class ResumeService {
         Resume resume = resumeRepository.findById(resumeId).orElseThrow(
                 () -> new NotFoundException("이력서가 존재하지 않습니다.")
         );
-        Optional<ResumeView> findResumeView = resumeViewRepository.findByUsersAndResume(user, resume);
-        if (!findResumeView.isPresent()) {
-            saveToRedis(resumeId, userId);
+
+        // Redis 키 생성
+        String resumeViewCountKey = "resume" + resumeId + " viewCount : ";
+        String resumeViewSetKey = "resume:view:" + resumeId;
+
+        // Redis에서 사용자의 조회 기록 확인
+        Boolean isUserViewed = redisTemplate.opsForSet().isMember(resumeViewSetKey, userId.toString());
+        if (Boolean.FALSE.equals(isUserViewed)) {
+            // Redis에 userId 저장 및 viewCount 증가
+            redisTemplate.opsForSet().add(resumeViewSetKey, userId.toString()); // userId 저장
+            redisTemplate.opsForValue().increment(resumeViewCountKey, 1); // 조회수 증가
         }
-        return ResumeDto.GetResumeRes.from(resume);
+
+        // Redis에서 조회수 가져오기
+        Long viewCount = (Long)redisTemplate.opsForValue().get(resumeViewCountKey);
+        viewCount = (viewCount != null) ? viewCount : 0L;
+
+        // ResumeDto에 viewCount를 포함하여 반환
+        return ResumeDto.GetResumeRes.from(resume, viewCount);
     }
 
     @Transactional(readOnly = true)
@@ -212,58 +226,5 @@ public class ResumeService {
             viewerInfoList.add(ViewerInfoDto.GetViewerInfoRes.from(resumeView));
         }
         return viewerInfoList;
-    }
-
-    @Transactional
-    public void saveToRedis(Long resumeId, Long userId) {
-        String redisKeyForUsers = "resume:view:" + resumeId;
-        String redisKeyForCnt = "resume:cnt" + resumeId;
-
-        redisTemplate.opsForSet().add(redisKeyForUsers, userId);
-        redisTemplate.opsForValue().increment(redisKeyForCnt);
-    }
-
-    @Scheduled(cron = "0 0/3 * * * ?")
-    @SchedulerLock(
-            name = "scheduler_lock",
-            lockAtLeastFor = "PT10S",
-            lockAtMostFor = "PT10S"
-    )
-    @Transactional
-    public void updateResumeView() {
-        // 1. Redis에서 resume:view:* 패턴의 키를 조회
-        Set<String> resumeViewKeys = redisTemplate.keys("resume:view:*");
-        if (resumeViewKeys != null) {
-            for (String key : resumeViewKeys) {
-                Long resumeId = Long.parseLong(key.split(":")[2]);
-                Set<Object> userIds = redisTemplate.opsForSet().members(key);
-
-                // ResumeView 객체를 생성하여 저장
-                for (Object userIdObj : userIds) {
-                    Long userId = Long.parseLong(userIdObj.toString());
-                    Resume resume = resumeRepository.findById(resumeId).orElseThrow();
-                    Users user = usersRepository.findById(userId).orElseThrow();
-                    ResumeView resumeView = ResumeView.of(resume, user);
-                    resumeViewRepository.save(resumeView);
-                }
-            }
-            redisTemplate.delete(resumeViewKeys);
-        }
-
-        // 2. Redis에서 resume:cnt 패턴의 키를 조회
-        Set<String> cntKeys = redisTemplate.keys("resume:cnt*");
-        if (cntKeys != null) {
-            for (String key : cntKeys) {
-                Long resumeId = Long.parseLong(key.split("cnt")[1]);
-                String cntValue = (String) redisTemplate.opsForValue().get(key);
-                if (cntValue != null) {
-                    int viewCount = Integer.parseInt(cntValue);
-                    // Resume 객체를 조회하고 조회 수를 업데이트
-                    Resume resume = resumeRepository.findById(resumeId).orElseThrow();
-                    resume.updateViewCnt(viewCount);
-                }
-            }
-            redisTemplate.delete(cntKeys);
-        }
     }
 }
