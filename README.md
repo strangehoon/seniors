@@ -56,13 +56,7 @@
 
 # 🛠 Infrastructure
 
-<img src = "https://github.com/strangehoon/seniors/assets/117654450/376ddf6f-3086-417d-8805-ba3a137b2231" height = "500" width = "800" allign = "center">
-
-</br>
-
-# 🔧 CICD
-
-<img src = "https://github.com/seniors-project/backend/assets/117654450/91630253-2114-4aee-a002-bd95dd65ac50" height = "450" width = "700" allign = "center">
+<img src = "https://github.com/user-attachments/assets/08e1b498-7159-4853-8bca-10765bfa68ab" height = "500" width = "1200" allign = "center">
 
 **Developer Flow**
 1. App Repository에 code 변경 사항 push
